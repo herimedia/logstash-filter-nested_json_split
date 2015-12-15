@@ -1,7 +1,7 @@
 # Logstash Plugin
 
 [![Build
-Status](http://build-eu-00.elastic.co/view/LS%20Plugins/view/LS%20Filters/job/logstash-plugin-filter-example-unit/badge/icon)](http://build-eu-00.elastic.co/view/LS%20Plugins/view/LS%20Filters/job/logstash-plugin-filter-example-unit/)
+Status](http://build-eu-00.elastic.co/view/LS%20Plugins/view/LS%20Filters/job/logstash-plugin-filter-nested_json_split-unit/badge/icon)](http://build-eu-00.elastic.co/view/LS%20Plugins/view/LS%20Filters/job/logstash-plugin-filter-nested_json_split-unit/)
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).
 

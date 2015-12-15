@@ -1,12 +1,12 @@
 # encoding: utf-8
 require 'spec_helper'
-require "logstash/filters/example"
+require "logstash/filters/nested_json_split"
 
-describe LogStash::Filters::Example do
+describe LogStash::Filters::NestedJsonSplit do
   describe "Set to Hello World" do
     let(:config) do <<-CONFIG
       filter {
-        example {
+        nested_json_split {
           message => "Hello World"
         }
       }

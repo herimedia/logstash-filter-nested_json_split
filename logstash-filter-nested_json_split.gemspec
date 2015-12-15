@@ -1,8 +1,8 @@
 Gem::Specification.new do |s|
-  s.name = 'logstash-filter-example'
+  s.name = 'logstash-filter-nested_json_split'
   s.version         = '2.0.3'
   s.licenses = ['Apache License (2.0)']
-  s.summary = "This example filter replaces the contents of the message field with the specified value."
+  s.summary = "This nested_json_split filter replaces the contents of the message field with the specified value."
   s.description = "This gem is a logstash plugin required to be installed on top of the Logstash core pipeline using $LS_HOME/bin/plugin install gemname. This gem is not a stand-alone program"
   s.authors = ["Elastic"]
   s.email = 'info@elastic.co'

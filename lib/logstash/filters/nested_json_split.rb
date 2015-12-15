@@ -6,18 +6,18 @@ require "logstash/namespace"
 # message field with whatever you specify in the configuration.
 #
 # It is only intended to be used as an example.
-class LogStash::Filters::Example < LogStash::Filters::Base
+class LogStash::Filters::NestedJsonSplit < LogStash::Filters::Base
 
   # Setting the config_name here is required. This is how you
   # configure this filter from your Logstash config.
   #
   # filter {
-  #   example {
+  #   nested_json_split {
   #     message => "My message..."
   #   }
   # }
   #
-  config_name "example"
+  config_name "nested_json_split"
   
   # Replace the message with this value.
   config :message, :validate => :string, :default => "Hello World!"
@@ -40,4 +40,4 @@ class LogStash::Filters::Example < LogStash::Filters::Base
     # filter_matched should go in the last line of our successful code
     filter_matched(event)
   end # def filter
-end # class LogStash::Filters::Example
+end # class LogStash::Filters::NestedJsonSplit
