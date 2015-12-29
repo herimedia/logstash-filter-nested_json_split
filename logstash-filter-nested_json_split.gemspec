@@ -19,6 +19,9 @@ Gem::Specification.new do |s|
   s.test_files      = s.files.grep(%r{\Aspec/})
   s.version         = "0.9.1"
 
+  s.cert_chain      = ["certs/gems.herimedia.com-CA.pem", "certs/niels@herimedia.com.crt"]
+  s.signing_key     = File.expand_path(ENV["SIGNING_KEY"]) if $0 =~ /gem\z/
+
   s.add_development_dependency  "logstash-devutils"
   s.add_runtime_dependency      "logstash-core", ">= 2.0.0", "< 3.0.0"
 end
