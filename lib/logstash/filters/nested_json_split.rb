@@ -1,43 +1,109 @@
 # encoding: utf-8
+
 require "logstash/filters/base"
 require "logstash/namespace"
 
-# This example filter will replace the contents of the default 
-# message field with whatever you specify in the configuration.
+# This plugin ingests a (potentially nested) JSON object and splits it into
+# multiple events based on one of its attributes that is an Array.
 #
-# It is only intended to be used as an example.
+# For example, you could turn this aggregate event:
+#
+# [source,ruby]
+# ----------------------------------------------------------------------------
+# {
+#   "requestId": "123",
+#   "body": {
+#     "events": [
+#       { "id": "456", "master_event": "First event." },
+#       { "id": "789", "master_event": "Second event." },
+#     }
+#   }
+# }
+# ----------------------------------------------------------------------------
+#
+# Into these individual events:
+#
+# [source,ruby]
+# ----------------------------------------------------------------------------
+# {
+#   "requestId": "123",
+#   "event": { "id": "456", "master_event": "First event." }
+# }
+#
+# {
+#   "requestId": "123",
+#   "event": { "id": "789", "master_event": "Second event." }
+# }
+# ----------------------------------------------------------------------------
+#
+# By configuring the plugin like so:
+#
+# [source]
+# ----------------------------------------------------------------------------
+# filter {
+#   nested_json_split {
+#     keys:   ["body", "events"]
+#     target: "event"
+#   }
+# }
+# ----------------------------------------------------------------------------
+#
+# By default, the following configuration is applied:
+#
+# [source]
+# ----------------------------------------------------------------------------
+# filter {
+#   nested_json_split {
+#     keys:   ["events"]
+#     target: "message"
+#   }
+# }
+# ----------------------------------------------------------------------------
 class LogStash::Filters::NestedJsonSplit < LogStash::Filters::Base
 
-  # Setting the config_name here is required. This is how you
-  # configure this filter from your Logstash config.
-  #
-  # filter {
-  #   nested_json_split {
-  #     message => "My message..."
-  #   }
-  # }
-  #
   config_name "nested_json_split"
-  
-  # Replace the message with this value.
-  config :message, :validate => :string, :default => "Hello World!"
-  
 
-  public
-  def register
-    # Add instance variables 
-  end # def register
+  config :keys,   validate: :array,   default: ["events"]
+  config :target, validate: :string,  default: "message"
 
-  public
-  def filter(event)
-
-    if @message
-      # Replace the event message with our message as configured in the
-      # config file.
-      event["message"] = @message
+  def filter(master_event)
+    events = master_event.remove(@keys.first)
+    @keys[1..-1].each do |key|
+      raise LogStash::ConfigurationError, "Input must be a JSON object / Ruby Hash but is instead: #{events.class.name} (#{events.inspect}). (Error occured while inspecting key #{key.inspect}.)" unless events.is_a?(Hash)
+      events = events[key]
     end
 
-    # filter_matched should go in the last line of our successful code
-    filter_matched(event)
-  end # def filter
-end # class LogStash::Filters::NestedJsonSplit
+    if events.nil?
+      @logger.warn("Filtered events are null", events: events, keys: @keys, master_event: master_event, target: @target)
+    elsif not events.is_a?(Array)
+      raise(
+        LogStash::ConfigurationError,
+        "Filtered input should be an Array but is instead: #{events.class.name} (#{events.inspect})."
+      )
+    elsif events.empty?
+      @logger.info("Filtered events are empty", events: events, keys: @keys, master_event: master_event, target: @target)
+    else
+      events.each_with_index do |event_payload, idx|
+        if event_payload.respond_to?(:empty?) ? event_payload.empty? : !event_payload
+          @logger.info("Event #{idx+1} is empty", event_payload: event_payload, events: events, keys: @keys, master_event: master_event, target: @target)
+        else
+          event = master_event.clone
+          event[@target] = event_payload
+
+          @logger.debug("Stashing event #{idx+1}", event: event, event_payload: event_payload, events: events, keys: @keys, master_event: master_event, target: @target)
+
+          filter_matched(event)
+          yield event
+        end
+      end
+    end
+
+    master_event.cancel
+    filter_matched(master_event)
+  end
+
+  def register
+    raise LogStash::ConfigurationError, "\"keys\" must be an Array of Strings but is: #{@keys.inspect}." unless @keys.is_a?(Array) and @keys.all? { |k| k.is_a?(String) }
+  end
+
+end
