@@ -69,17 +69,24 @@ class LogStash::Filters::NestedJsonSplit < LogStash::Filters::Base
   def filter(master_event)
     events = master_event.remove(@keys.first)
     @keys[1..-1].each do |key|
-      raise LogStash::ConfigurationError, "Input must be a JSON object / Ruby Hash but is instead: #{events.class.name} (#{events.inspect}). (Error occured while inspecting key #{key.inspect}.)" unless events.is_a?(Hash)
+      return abort_splitting!(
+        master_event,
+        "Input must be a JSON object / Ruby Hash but is instead: #{events.class.name}.",
+         events:  events,
+         key:     key,
+        ) unless events.is_a?(Hash)
+
       events = events[key]
     end
 
     if events.nil?
       @logger.warn("Filtered events are null", events: events, keys: @keys, master_event: master_event, target: @target)
     elsif not events.is_a?(Array)
-      raise(
-        LogStash::ConfigurationError,
-        "Filtered input should be an Array but is instead: #{events.class.name} (#{events.inspect})."
-      )
+      return abort_splitting!(
+        master_event,
+        "Filtered input should be an Array but is instead: #{events.class.name} (#{events.inspect}).",
+         events:  events,
+        )
     elsif events.empty?
       @logger.info("Filtered events are empty", events: events, keys: @keys, master_event: master_event, target: @target)
     else
@@ -98,12 +105,28 @@ class LogStash::Filters::NestedJsonSplit < LogStash::Filters::Base
       end
     end
 
-    master_event.cancel
-    filter_matched(master_event)
+    finalize(master_event)
   end
 
   def register
     raise LogStash::ConfigurationError, "\"keys\" must be an Array of Strings but is: #{@keys.inspect}." unless @keys.is_a?(Array) and @keys.all? { |k| k.is_a?(String) }
+  end
+
+  protected
+
+  def abort_splitting!(master_event, reason, debug_params = {})
+    @logger.error(reason, {
+      keys:         @keys,
+      master_event: master_event,
+      target:       @target,
+    }.merge(debug_params))
+
+    finalize(master_event)
+  end
+
+  def finalize(master_event)
+    master_event.cancel
+    filter_matched(master_event)
   end
 
 end
